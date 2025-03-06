@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
-import { getCurrentUser, logoutUser } from "@/lib/api"
+import { getCurrentUser, logoutUser } from "@/lib/api.js"
 
 interface User {
   _id: string

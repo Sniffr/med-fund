@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { fetchCampaigns } from "@/lib/api"
+import { fetchCampaigns } from "@/lib/api.js"
 
 export default function FeaturedCampaigns() {
   const [activeTab, setActiveTab] = useState("urgent")

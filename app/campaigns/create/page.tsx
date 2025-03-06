@@ -62,7 +62,7 @@ export default function CreateCampaignPage() {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
       // Note: Files can't be stored in localStorage, so we'll just update the state
-      setFormData((prev) => ({ ...prev, files: [...prev.files, ...newFiles] }))
+      setFormData((prev: any) => ({ ...prev, files: [...prev.files, ...newFiles] }))
       // We can store file metadata in localStorage if needed
       const updatedFormData = { ...formData }
       updatedFormData.files = [...formData.files, ...newFiles].map((file: File) => ({
