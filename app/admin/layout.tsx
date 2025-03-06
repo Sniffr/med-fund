@@ -1,3 +1,5 @@
+"use client"
+
 import type { ReactNode } from "react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -13,14 +15,34 @@ import {
   Settings,
   Users,
 } from "lucide-react"
-
-// This would normally check for authentication
-const isAuthenticated = true
+import { useAuth } from "@/contexts/auth-context"
+import { useEffect, useState } from "react"
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  // In a real app, you would check for admin authentication
-  if (!isAuthenticated) {
-    redirect("/admin/login")
+  const { user, loading, logout } = useAuth()
+  const [isClient, setIsClient] = useState(false)
+  
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  // Show loading state while checking authentication
+  if (loading || !isClient) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  // Check if user is authenticated and has admin role
+  if (!user || user.role !== 'admin') {
+    redirect("/login?redirect=/admin")
+  }
+  
+  const handleLogout = async () => {
+    await logout()
+    redirect("/login")
   }
 
   return (
@@ -52,6 +74,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <Button
               variant="ghost"
               className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              onClick={handleLogout}
             >
               <LogOut className="mr-2 h-4 w-4" />
               Logout

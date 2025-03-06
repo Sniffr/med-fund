@@ -1,16 +1,148 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { fetchCampaigns } from "@/lib/api"
 
 export default function FeaturedCampaigns() {
   const [activeTab, setActiveTab] = useState("urgent")
+  const [campaignsData, setCampaignsData] = useState<{
+    urgent: any[];
+    trending: any[];
+    recent: any[];
+  }>({
+    urgent: [],
+    trending: [],
+    recent: []
+  })
+  const [loading, setLoading] = useState(true)
 
-  const campaigns = {
+  useEffect(() => {
+    const loadCampaigns = async () => {
+      try {
+        setLoading(true)
+        
+        // Try using the API helper first
+        if (typeof fetchCampaigns === 'function') {
+          // Fetch urgent campaigns (those with close deadlines)
+          const urgentResponse = await fetchCampaigns({ 
+            limit: 3,
+            sort: 'timeline.endDate',
+            status: 'active'
+          })
+          
+          // Fetch trending campaigns (those with highest percentage funded)
+          const trendingResponse = await fetchCampaigns({ 
+            limit: 3,
+            sort: 'raised',
+            status: 'active'
+          })
+          
+          // Fetch recent campaigns
+          const recentResponse = await fetchCampaigns({ 
+            limit: 3,
+            sort: 'createdAt',
+            status: 'active'
+          })
+          
+          setCampaignsData({
+            urgent: urgentResponse.campaigns.map(formatCampaign),
+            trending: trendingResponse.campaigns.map(formatCampaign),
+            recent: recentResponse.campaigns.map(formatCampaign)
+          })
+        } else {
+          // Fallback to direct fetch if API helper is not available
+          // Fetch urgent campaigns (those with close deadlines)
+          const urgentResponse = await fetch('/api/campaigns?featured=true&limit=3')
+          const urgentData = await urgentResponse.json()
+          
+          // Fetch trending campaigns (those with highest amount raised)
+          const trendingResponse = await fetch('/api/campaigns?sort=currentAmount&limit=3')
+          const trendingData = await trendingResponse.json()
+          
+          // Fetch recent campaigns
+          const recentResponse = await fetch('/api/campaigns?limit=3')
+          const recentData = await recentResponse.json()
+          
+          setCampaignsData({
+            urgent: formatCampaigns(urgentData),
+            trending: formatCampaigns(trendingData.campaigns || []),
+            recent: formatCampaigns(recentData.campaigns || [])
+          })
+        }
+      } catch (error) {
+        console.error("Error loading campaigns:", error)
+        setCampaignsData(sampleCampaigns)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadCampaigns()
+  }, [])
+  
+  // Helper function to format campaign data
+  const formatCampaign = (campaign: any) => {
+    const percentFunded = campaign.goal > 0 
+      ? Math.round((campaign.amountRaised / campaign.goal) * 100) 
+      : 0
+      
+    // Calculate days left (default 30 days from creation)
+    const createdAt = new Date(campaign.createdAt)
+    const endDate = new Date(createdAt)
+    endDate.setDate(endDate.getDate() + 30)
+    const today = new Date()
+    const diffTime = endDate.getTime() - today.getTime()
+    const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+    
+    return {
+      id: campaign._id,
+      title: campaign.title,
+      category: campaign.category,
+      image: campaign.imageUrl || "/placeholder.svg?height=200&width=300", // Default image
+      raised: campaign.raised || campaign.currentAmount || 0,
+      goal: campaign.goal || 0,
+      daysLeft,
+      percentFunded
+    }
+  }
+  
+  // Helper function to format campaign data from direct API
+  const formatCampaigns = (campaigns) => {
+    if (!Array.isArray(campaigns)) return []
+    
+    return campaigns.map((campaign) => {
+      const percentFunded = campaign.goal > 0 
+        ? Math.round((campaign.currentAmount / campaign.goal) * 100) 
+        : 0
+        
+      // Calculate days left (default 30 days from creation)
+      const createdAt = new Date(campaign.createdAt)
+      const endDate = new Date(createdAt)
+      endDate.setDate(endDate.getDate() + 30)
+      const today = new Date()
+      const diffTime = endDate - today
+      const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+      
+      return {
+        id: campaign._id,
+        title: campaign.title,
+        category: campaign.category,
+        image: campaign.imageUrl || "/placeholder.svg?height=200&width=300",
+        raised: campaign.currentAmount || 0,
+        goal: campaign.goal || 0,
+        daysLeft,
+        percentFunded
+      }
+    })
+  }
+  
+  // Sample data as fallback
+  const sampleCampaigns = {
     urgent: [
       {
         id: 1,
@@ -136,62 +268,73 @@ export default function FeaturedCampaigns() {
             </TabsList>
           </div>
 
-          {Object.keys(campaigns).map((tabKey) => (
-            <TabsContent key={tabKey} value={tabKey} className="space-y-8">
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {campaigns[tabKey as keyof typeof campaigns].map((campaign) => (
-                  <Card key={campaign.id} className="overflow-hidden">
-                    <div className="aspect-video relative">
-                      <img
-                        src={campaign.image || "/placeholder.svg"}
-                        alt={campaign.title}
-                        className="object-cover w-full h-full"
-                      />
-                      <Badge className="absolute top-2 right-2">{campaign.category}</Badge>
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            Object.keys(campaignsData).map((tabKey) => (
+              <TabsContent key={tabKey} value={tabKey} className="space-y-8">
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {campaignsData[tabKey as keyof typeof campaignsData].length > 0 ? (
+                    campaignsData[tabKey as keyof typeof campaignsData].map((campaign: any) => (
+                      <Card key={campaign.id} className="overflow-hidden">
+                        <div className="aspect-video relative">
+                          <img
+                            src={campaign.image || "/placeholder.svg"}
+                            alt={campaign.title}
+                            className="object-cover w-full h-full"
+                          />
+                          <Badge className="absolute top-2 right-2">{campaign.category}</Badge>
+                        </div>
+                        <CardContent className="p-6">
+                          <h3 className="font-semibold text-lg mb-2">{campaign.title}</h3>
+                          <div className="space-y-2">
+                            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                              <div
+                                className="bg-primary h-2.5 rounded-full"
+                                style={{ width: `${campaign.percentFunded}%` }}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>${campaign.raised.toLocaleString()} raised</span>
+                              <span>${campaign.goal.toLocaleString()} goal</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {campaign.daysLeft} days left
+                              </span>
+                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                {campaign.percentFunded}% Funded
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="p-6 pt-0">
+                          <Button asChild className="w-full">
+                            <Link href={`/campaigns/${campaign.id}`}>Donate Now</Link>
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-center py-10">
+                      <p className="text-gray-500">No campaigns found in this category.</p>
                     </div>
-                    <CardContent className="p-6">
-                      <h3 className="font-semibold text-lg mb-2">{campaign.title}</h3>
-                      <div className="space-y-2">
-                        <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                          <div
-                            className="bg-primary h-2.5 rounded-full"
-                            style={{ width: `${campaign.percentFunded}%` }}
-                          ></div>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>${campaign.raised.toLocaleString()} raised</span>
-                          <span>${campaign.goal.toLocaleString()} goal</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {campaign.daysLeft} days left
-                          </span>
-                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                            {campaign.percentFunded}% Funded
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="p-6 pt-0">
-                      <Button asChild className="w-full">
-                        <Link href={`/campaigns/${campaign.id}`}>Donate Now</Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-              <div className="flex justify-center">
-                <Button variant="outline" asChild>
-                  <Link href={`/campaigns?category=${activeTab}`}>
-                    View All {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Campaigns
-                  </Link>
-                </Button>
-              </div>
-            </TabsContent>
-          ))}
+                  )}
+                </div>
+                <div className="flex justify-center">
+                  <Button variant="outline" asChild>
+                    <Link href={`/campaigns?category=${activeTab}`}>
+                      View All {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Campaigns
+                    </Link>
+                  </Button>
+                </div>
+              </TabsContent>
+            ))
+          )}
         </Tabs>
       </div>
     </section>
   )
 }
-

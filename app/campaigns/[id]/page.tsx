@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -7,10 +10,131 @@ import { Calendar, CheckCircle2, Clock, FileText, Heart, Share2, Shield, User } 
 import DonationForm from "@/components/donation-form"
 import UpdatesTimeline from "@/components/updates-timeline"
 import DocumentVerification from "@/components/document-verification"
+import { fetchCampaignById } from "@/lib/api"
 
 export default function CampaignPage({ params }: { params: { id: string } }) {
-  // This would normally come from a database
-  const campaign = {
+  interface Campaign {
+    id: string;
+    title: string;
+    description: string;
+    longDescription: string;
+    category: string;
+    image: string;
+    raised: number;
+    goal: number;
+    daysLeft: number;
+    percentFunded: number;
+    createdAt: string;
+    creator: {
+      name: string;
+      avatar: string;
+      relationship: string;
+    };
+    updates: Array<{
+      date: string;
+      title: string;
+      content: string;
+    }>;
+    documents: Array<{
+      title: string;
+      type: string;
+      verified: boolean;
+      date: string;
+    }>;
+    donors: Array<{
+      name: string;
+      amount: number;
+      date: string;
+      message: string | null;
+    }>;
+    patient?: any;
+    treatmentPlan?: string;
+    verificationStatus?: {
+      isVerified: boolean;
+      verifiedBy: string | null;
+      verifiedAt: string | null;
+    };
+  }
+  
+  const [campaign, setCampaign] = useState<Campaign | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  useEffect(() => {
+    const loadCampaign = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch campaign data from API
+        const response = await fetch(`/api/campaigns/${params.id}`)
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch campaign: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        
+        if (data) {
+          // Calculate percentage funded
+          const percentFunded = data.goal > 0 
+            ? Math.round((data.amountRaised / data.goal) * 100) 
+            : 0
+            
+          // Calculate days left if end date exists
+          let daysLeft = 30 // Default
+          if (data.createdAt) {
+            const createdAt = new Date(data.createdAt)
+            const endDate = new Date(createdAt)
+            endDate.setDate(endDate.getDate() + 30)
+            const today = new Date()
+            const diffTime = endDate.getTime() - today.getTime()
+            daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+            daysLeft = daysLeft > 0 ? daysLeft : 0
+          }
+          
+          // Format the campaign data
+          setCampaign({
+            id: data._id,
+            title: data.title,
+            description: data.description || '',
+            longDescription: data.story || '',
+            category: data.category || 'Medical',
+            image: data.imageUrl || "/placeholder.svg?height=400&width=800",
+            raised: data.amountRaised || 0,
+            goal: data.goal || 0,
+            daysLeft,
+            percentFunded,
+            createdAt: new Date(data.createdAt).toLocaleDateString(),
+            creator: {
+              name: data.userName || "Campaign Creator",
+              avatar: "/placeholder.svg?height=40&width=40",
+              relationship: data.relationship || "Creator",
+            },
+            updates: data.updates || [],
+            documents: data.documents || [],
+            donors: data.donations || [],
+            verificationStatus: {
+              isVerified: data.status === 'verified',
+              verifiedBy: data.verifiedBy || null,
+              verifiedAt: data.verifiedAt || null
+            }
+          })
+        } else {
+          setError("Campaign not found")
+        }
+      } catch (err) {
+        console.error("Error loading campaign:", err)
+        setError("Failed to load campaign details")
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadCampaign()
+  }, [params.id])
+  
+  // Fallback campaign data for development or if API fails
+  const fallbackCampaign = {
     id: params.id,
     title: "Heart Surgery for David",
     description:
@@ -100,6 +224,88 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
       },
     ],
   }
+  
+  // Use fallback data if loading or error
+  const displayCampaign = campaign || fallbackCampaign
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <section className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container px-4 md:px-6">
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    )
+  }
+  
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <section className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Campaign Not Found</h1>
+                <p className="max-w-[700px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
+                  {error}
+                </p>
+                <Button asChild className="mt-4">
+                  <a href="/campaigns">Browse Other Campaigns</a>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  // Use fallback data if loading or error
+  const displayCampaign = campaign || fallbackCampaign
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <section className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container px-4 md:px-6">
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    )
+  }
+  
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <section className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Campaign Not Found</h1>
+                <p className="max-w-[700px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
+                  {error}
+                </p>
+                <Button asChild className="mt-4">
+                  <a href="/campaigns">Browse Other Campaigns</a>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -109,25 +315,27 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
             <div className="lg:col-span-2 space-y-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Badge>{campaign.category}</Badge>
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                    Verified
-                  </Badge>
+                  <Badge>{displayCampaign.category}</Badge>
+                  {displayCampaign.verificationStatus?.isVerified && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                      Verified
+                    </Badge>
+                  )}
                 </div>
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">{campaign.title}</h1>
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">{displayCampaign.title}</h1>
                 <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                   <Calendar className="h-4 w-4" />
-                  <span>Created on {campaign.createdAt}</span>
+                  <span>Created on {displayCampaign.createdAt}</span>
                   <span className="mx-2">•</span>
                   <Clock className="h-4 w-4" />
-                  <span>{campaign.daysLeft} days left</span>
+                  <span>{displayCampaign.daysLeft} days left</span>
                 </div>
               </div>
 
               <div className="aspect-video overflow-hidden rounded-lg">
                 <img
-                  src={campaign.image || "/placeholder.svg"}
-                  alt={campaign.title}
+                  src={displayCampaign.image || "/placeholder.svg"}
+                  alt={displayCampaign.title}
                   className="object-cover w-full h-full"
                 />
               </div>
@@ -135,13 +343,13 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Avatar>
-                    <AvatarImage src={campaign.creator.avatar} alt={campaign.creator.name} />
-                    <AvatarFallback>{campaign.creator.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={displayCampaign.creator?.avatar} alt={displayCampaign.creator?.name || 'Creator'} />
+                    <AvatarFallback>{displayCampaign.creator?.name ? displayCampaign.creator.name.charAt(0) : 'C'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium">{campaign.creator.name}</div>
+                    <div className="font-medium">{displayCampaign.creator?.name || 'Campaign Creator'}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Campaign Creator ({campaign.creator.relationship})
+                      Campaign Creator ({displayCampaign.creator?.relationship || 'Creator'})
                     </div>
                   </div>
                 </div>
@@ -165,7 +373,7 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                   <TabsTrigger value="donors">Donors</TabsTrigger>
                 </TabsList>
                 <TabsContent value="story" className="space-y-4 py-4">
-                  <p className="text-gray-500 dark:text-gray-400">{campaign.longDescription}</p>
+                  <p className="text-gray-500 dark:text-gray-400">{displayCampaign.longDescription}</p>
                   <div className="grid gap-4 md:grid-cols-2">
                     <Card>
                       <CardContent className="p-4 flex items-start gap-3">
@@ -175,8 +383,9 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                         <div>
                           <h3 className="font-semibold">Patient Information</h3>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            David is a 10-year-old boy diagnosed with a congenital heart defect that requires surgical
-                            intervention.
+                            {displayCampaign.patient?.description || 
+                              `${displayCampaign.patientName || 'Patient'} is a ${displayCampaign.patientAge || ''} year-old 
+                              diagnosed with a medical condition that requires treatment.`}
                           </p>
                         </div>
                       </CardContent>
@@ -189,8 +398,8 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                         <div>
                           <h3 className="font-semibold">Treatment Plan</h3>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Open-heart surgery to repair the defect, followed by 2 weeks of hospital recovery and 3
-                            months of rehabilitation.
+                            {displayCampaign.treatmentPlan || 
+                              "The treatment plan includes necessary medical procedures and recovery time."}
                           </p>
                         </div>
                       </CardContent>
@@ -198,14 +407,14 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                   </div>
                 </TabsContent>
                 <TabsContent value="updates" className="py-4">
-                  <UpdatesTimeline updates={campaign.updates} />
+                  <UpdatesTimeline updates={displayCampaign.updates} />
                 </TabsContent>
                 <TabsContent value="documents" className="py-4">
-                  <DocumentVerification documents={campaign.documents} />
+                  <DocumentVerification documents={displayCampaign.documents} />
                 </TabsContent>
                 <TabsContent value="donors" className="py-4">
                   <div className="space-y-4">
-                    {campaign.donors.map((donor, index) => (
+                    {displayCampaign.donors.map((donor, index) => (
                       <div key={index} className="flex items-start gap-4 p-4 border rounded-lg">
                         <Avatar>
                           <AvatarFallback>{donor.name === "Anonymous" ? "A" : donor.name.charAt(0)}</AvatarFallback>
@@ -242,29 +451,29 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                     <div className="flex justify-between items-center">
                       <h3 className="font-semibold text-lg">Funding Progress</h3>
                       <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                        {campaign.percentFunded}% Funded
+                        {displayCampaign.percentFunded}% Funded
                       </Badge>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                       <div
                         className="bg-primary h-2.5 rounded-full"
-                        style={{ width: `${campaign.percentFunded}%` }}
+                        style={{ width: `${displayCampaign.percentFunded}%` }}
                       ></div>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span>${campaign.raised.toLocaleString()} raised</span>
-                      <span>${campaign.goal.toLocaleString()} goal</span>
+                      <span>${displayCampaign.raised.toLocaleString()} raised</span>
+                      <span>${displayCampaign.goal.toLocaleString()} goal</span>
                     </div>
                     <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                       <User className="h-4 w-4" />
-                      <span>{campaign.donors.length} donors</span>
+                      <span>{displayCampaign.donors.length} donors</span>
                       <span className="mx-1">•</span>
                       <Clock className="h-4 w-4" />
-                      <span>{campaign.daysLeft} days left</span>
+                      <span>{displayCampaign.daysLeft} days left</span>
                     </div>
                   </div>
 
-                  <DonationForm campaignId={campaign.id} />
+                  <DonationForm campaignId={displayCampaign.id} />
 
                   <div className="pt-4 border-t">
                     <div className="flex items-center gap-2 mb-4">
@@ -272,18 +481,26 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                       <h3 className="font-semibold">Verification Status</h3>
                     </div>
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-500" />
-                        <span className="text-sm">Medical documentation verified</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-500" />
-                        <span className="text-sm">Healthcare provider confirmed</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-500" />
-                        <span className="text-sm">Identity verification complete</span>
-                      </div>
+                      {displayCampaign.verificationStatus?.isVerified ? (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-500" />
+                            <span className="text-sm">Medical documentation verified</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-500" />
+                            <span className="text-sm">Healthcare provider confirmed</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-500" />
+                            <span className="text-sm">Identity verification complete</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-amber-600 dark:text-amber-500">
+                          This campaign is pending verification
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
