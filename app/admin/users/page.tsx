@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -28,10 +31,34 @@ import {
   UserCog,
 } from "lucide-react"
 
+interface User {
+  _id: string;
+  id?: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  campaigns?: number;
+  donations?: number;
+  createdAt: string;
+  joinedAt?: string;
+  avatar?: string;
+}
+
 export default function UsersPage() {
-  // This would normally come from a database
-  const users = [
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Placeholder users for initial render or fallback
+  const placeholderUsers: User[] = [
     {
+      _id: "USR-001",
       id: "USR-001",
       name: "Sarah Johnson",
       email: "sarah.johnson@example.com",
@@ -39,10 +66,12 @@ export default function UsersPage() {
       status: "active",
       campaigns: 3,
       donations: 12,
+      createdAt: "2023-01-15T00:00:00.000Z",
       joinedAt: "2023-01-15",
       avatar: "/placeholder.svg?height=32&width=32",
     },
     {
+      _id: "USR-002",
       id: "USR-002",
       name: "John Smith",
       email: "john.smith@example.com",
@@ -50,10 +79,12 @@ export default function UsersPage() {
       status: "active",
       campaigns: 1,
       donations: 8,
+      createdAt: "2023-02-20T00:00:00.000Z",
       joinedAt: "2023-02-20",
       avatar: "/placeholder.svg?height=32&width=32",
     },
     {
+      _id: "USR-003",
       id: "USR-003",
       name: "Emily Wilson",
       email: "emily.wilson@example.com",
@@ -61,10 +92,12 @@ export default function UsersPage() {
       status: "active",
       campaigns: 2,
       donations: 5,
+      createdAt: "2023-03-10T00:00:00.000Z",
       joinedAt: "2023-03-10",
       avatar: "/placeholder.svg?height=32&width=32",
     },
     {
+      _id: "USR-004",
       id: "USR-004",
       name: "Robert Brown",
       email: "robert.brown@example.com",
@@ -72,10 +105,12 @@ export default function UsersPage() {
       status: "active",
       campaigns: 0,
       donations: 15,
+      createdAt: "2023-04-05T00:00:00.000Z",
       joinedAt: "2023-04-05",
       avatar: "/placeholder.svg?height=32&width=32",
     },
     {
+      _id: "USR-005",
       id: "USR-005",
       name: "Michael Davis",
       email: "michael.davis@example.com",
@@ -83,65 +118,104 @@ export default function UsersPage() {
       status: "suspended",
       campaigns: 1,
       donations: 3,
+      createdAt: "2023-05-12T00:00:00.000Z",
       joinedAt: "2023-05-12",
       avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-      id: "USR-006",
-      name: "Jessica Lee",
-      email: "jessica.lee@example.com",
-      role: "user",
-      status: "active",
-      campaigns: 1,
-      donations: 7,
-      joinedAt: "2023-06-18",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-      id: "USR-007",
-      name: "Thomas Wilson",
-      email: "thomas.wilson@example.com",
-      role: "user",
-      status: "active",
-      campaigns: 1,
-      donations: 2,
-      joinedAt: "2023-07-22",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-      id: "USR-008",
-      name: "Amanda Clark",
-      email: "amanda.clark@example.com",
-      role: "user",
-      status: "active",
-      campaigns: 1,
-      donations: 4,
-      joinedAt: "2023-08-30",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-      id: "USR-009",
-      name: "David Miller",
-      email: "david.miller@example.com",
-      role: "user",
-      status: "inactive",
-      campaigns: 0,
-      donations: 0,
-      joinedAt: "2023-09-05",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-      id: "USR-010",
-      name: "Mary Johnson",
-      email: "mary.johnson@example.com",
-      role: "user",
-      status: "active",
-      campaigns: 1,
-      donations: 6,
-      joinedAt: "2023-10-01",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
+    }
   ]
+  
+  useEffect(() => {
+    fetchUsers();
+  }, [currentPage, roleFilter, statusFilter]);
+  
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '10'
+      });
+      
+      if (searchQuery) {
+        queryParams.append('search', searchQuery);
+      }
+      
+      if (roleFilter !== 'all') {
+        queryParams.append('role', roleFilter);
+      }
+      
+      if (statusFilter !== 'all') {
+        queryParams.append('status', statusFilter);
+      }
+      
+      const response = await fetch(`/api/admin/users?${queryParams.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users || []);
+        setTotalPages(data.totalPages || 1);
+        setCurrentPage(data.currentPage || 1);
+        setTotalUsers(data.total || 0);
+      } else {
+        console.error('Error fetching users: API returned non-OK status');
+        // Set placeholder data as fallback
+        setUsers(placeholderUsers);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      // Set placeholder data as fallback
+      setUsers(placeholderUsers);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1); // Reset to first page when searching
+    fetchUsers();
+  };
+  
+  const handleRoleFilterChange = (value: string) => {
+    setRoleFilter(value);
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+  
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+  
+  const handleEditUser = (userId: string | undefined) => {
+    if (!userId) return;
+    // This would navigate to an edit user page or open a modal
+    console.log(`Edit user with ID: ${userId}`);
+  };
+  
+  const handleDeleteUser = (userId: string | undefined) => {
+    if (!userId) return;
+    // This would show a confirmation dialog before deleting
+    if (confirm('Are you sure you want to delete this user?')) {
+      console.log(`Delete user with ID: ${userId}`);
+      // After successful deletion, refresh the user list
+      fetchUsers();
+    }
+  };
+  
+  const handleChangeRole = (userId: string | undefined, newRole: string) => {
+    if (!userId) return;
+    // This would update the user's role
+    console.log(`Change role of user ${userId} to ${newRole}`);
+    // After successful update, refresh the user list
+    fetchUsers();
+  };
+  
+  const handleChangeStatus = (userId: string | undefined, newStatus: string) => {
+    if (!userId) return;
+    // This would update the user's status
+    console.log(`Change status of user ${userId} to ${newStatus}`);
+    // After successful update, refresh the user list
+    fetchUsers();
+  };
 
   return (
     <div className="space-y-6">
@@ -165,17 +239,25 @@ export default function UsersPage() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row gap-4 justify-between">
               <div className="flex w-full sm:w-auto items-center gap-2">
-                <div className="relative w-full sm:w-[300px]">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input type="search" placeholder="Search users..." className="w-full pl-8" />
-                </div>
-                <Button variant="outline" size="icon">
-                  <Filter className="h-4 w-4" />
-                  <span className="sr-only">Filter</span>
-                </Button>
+                <form onSubmit={handleSearch} className="flex w-full sm:w-auto items-center gap-2">
+                  <div className="relative w-full sm:w-[300px]">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      type="search" 
+                      placeholder="Search users..." 
+                      className="w-full pl-8"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <Button type="submit" variant="outline" size="icon">
+                    <Filter className="h-4 w-4" />
+                    <span className="sr-only">Search</span>
+                  </Button>
+                </form>
               </div>
               <div className="flex items-center gap-2">
-                <Select defaultValue="all">
+                <Select value={roleFilter} onValueChange={handleRoleFilterChange}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Role" />
                   </SelectTrigger>
@@ -186,7 +268,7 @@ export default function UsersPage() {
                     <SelectItem value="user">User</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select defaultValue="all">
+                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -200,116 +282,157 @@ export default function UsersPage() {
               </div>
             </div>
 
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-center">Campaigns</TableHead>
-                    <TableHead className="text-center">Donations</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={user.avatar} alt={user.name} />
-                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{user.name}</span>
-                            <span className="text-xs text-muted-foreground">{user.email}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <RoleBadge role={user.role} />
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={user.status} />
-                      </TableCell>
-                      <TableCell>{user.joinedAt}</TableCell>
-                      <TableCell className="text-center">{user.campaigns}</TableCell>
-                      <TableCell className="text-center">{user.donations}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Actions</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Edit User
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <UserCog className="mr-2 h-4 w-4" />
-                              Change Role
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {user.status === "active" ? (
-                              <DropdownMenuItem className="text-orange-600">
-                                <Ban className="mr-2 h-4 w-4" />
-                                Suspend User
-                              </DropdownMenuItem>
-                            ) : user.status === "suspended" ? (
-                              <DropdownMenuItem className="text-green-600">
-                                <Unlock className="mr-2 h-4 w-4" />
-                                Reactivate User
-                              </DropdownMenuItem>
-                            ) : null}
-                            <DropdownMenuItem>
-                              <Lock className="mr-2 h-4 w-4" />
-                              Reset Password
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            {loading ? (
+              <div className="py-8 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-2 text-muted-foreground">Loading users...</p>
+              </div>
+            ) : users.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-muted-foreground">No users found</p>
+                {searchQuery && (
+                  <Button 
+                    variant="link" 
+                    onClick={() => {
+                      setSearchQuery('');
+                      fetchUsers();
+                    }}
+                  >
+                    Clear search
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Joined</TableHead>
+                        <TableHead className="text-center">Campaigns</TableHead>
+                        <TableHead className="text-center">Donations</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user._id || user.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user.avatar || `/placeholder.svg?height=32&width=32`} alt={user.name} />
+                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{user.name}</span>
+                                <span className="text-xs text-muted-foreground">{user.email}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <RoleBadge role={user.role} />
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={user.status} />
+                          </TableCell>
+                          <TableCell>{user.joinedAt || new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-center">{user.campaigns || 0}</TableCell>
+                          <TableCell className="text-center">{user.donations || 0}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Actions</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleEditUser(user._id || user.id)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit User
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <UserCog className="mr-2 h-4 w-4" />
+                                  Change Role
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {user.status === "active" ? (
+                                  <DropdownMenuItem 
+                                    className="text-orange-600"
+                                    onClick={() => handleChangeStatus(user._id || user.id, 'suspended')}
+                                  >
+                                    <Ban className="mr-2 h-4 w-4" />
+                                    Suspend User
+                                  </DropdownMenuItem>
+                                ) : user.status === "suspended" ? (
+                                  <DropdownMenuItem 
+                                    className="text-green-600"
+                                    onClick={() => handleChangeStatus(user._id || user.id, 'active')}
+                                  >
+                                    <Unlock className="mr-2 h-4 w-4" />
+                                    Reactivate User
+                                  </DropdownMenuItem>
+                                ) : null}
+                                <DropdownMenuItem>
+                                  <Lock className="mr-2 h-4 w-4" />
+                                  Reset Password
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Showing <strong>1</strong> to <strong>10</strong> of <strong>100</strong> results
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="icon">
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="sr-only">Previous</span>
-                </Button>
-                <Button variant="outline" size="sm" className="bg-primary text-primary-foreground">
-                  1
-                </Button>
-                <Button variant="outline" size="sm">
-                  2
-                </Button>
-                <Button variant="outline" size="sm">
-                  3
-                </Button>
-                <Button variant="outline" size="sm">
-                  4
-                </Button>
-                <Button variant="outline" size="sm">
-                  5
-                </Button>
-                <Button variant="outline" size="icon">
-                  <ChevronRight className="h-4 w-4" />
-                  <span className="sr-only">Next</span>
-                </Button>
-              </div>
-            </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Showing <strong>{(currentPage - 1) * 10 + 1}</strong> to{" "}
+                    <strong>{Math.min(currentPage * 10, totalUsers)}</strong> of{" "}
+                    <strong>{totalUsers}</strong> results
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span className="sr-only">Previous</span>
+                    </Button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const pageNumber = i + 1;
+                      return (
+                        <Button 
+                          key={pageNumber}
+                          variant="outline" 
+                          size="sm" 
+                          className={pageNumber === currentPage ? "bg-primary text-primary-foreground" : ""}
+                          onClick={() => setCurrentPage(pageNumber)}
+                        >
+                          {pageNumber}
+                        </Button>
+                      );
+                    })}
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                      <span className="sr-only">Next</span>
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

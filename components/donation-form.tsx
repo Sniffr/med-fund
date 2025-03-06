@@ -16,6 +16,12 @@ export default function DonationForm({ campaignId }: { campaignId: string }) {
   const [amount, setAmount] = useState<string>("")
   const [customAmount, setCustomAmount] = useState<string>("")
   const [paymentMethod, setPaymentMethod] = useState<string>("card")
+  const [donorName, setDonorName] = useState<string>("")
+  const [email, setEmail] = useState<string>("")
+  const [message, setMessage] = useState<string>("")
+  const [isAnonymous, setIsAnonymous] = useState<boolean>(false)
+  const [coverFees, setCoverFees] = useState<boolean>(false)
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
   const handleAmountSelect = (value: string) => {
     setAmount(value)
@@ -27,11 +33,67 @@ export default function DonationForm({ campaignId }: { campaignId: string }) {
     setAmount("custom")
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const donationAmount = amount === "custom" ? customAmount : amount
-    alert(`Processing donation of $${donationAmount} for campaign #${campaignId} via ${paymentMethod}`)
-    // In a real app, this would submit to a payment processor
+    setIsSubmitting(true)
+    
+    try {
+      const donationAmount = amount === "custom" ? parseFloat(customAmount) : parseFloat(amount)
+      
+      if (isNaN(donationAmount) || donationAmount <= 0) {
+        alert("Please enter a valid donation amount")
+        setIsSubmitting(false)
+        return
+      }
+      
+      // Calculate final amount with fees if selected
+      const finalAmount = coverFees ? donationAmount + 2.5 : donationAmount
+      
+      // Create donation object
+      const donationData = {
+        campaignId,
+        amount: finalAmount,
+        paymentMethod,
+        donorName: isAnonymous ? null : donorName,
+        email,
+        message: message.trim() || null,
+        anonymous: isAnonymous,
+        status: "completed", // In a real app, this would be 'pending' until payment is processed
+      }
+      
+      // Submit to API
+      const response = await fetch('/api/donations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(donationData),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to process donation')
+      }
+      
+      const result = await response.json()
+      
+      // Show success message
+      alert(`Thank you for your donation of $${finalAmount.toFixed(2)}!`)
+      
+      // Reset form
+      setAmount("")
+      setCustomAmount("")
+      setDonorName("")
+      setEmail("")
+      setMessage("")
+      setIsAnonymous(false)
+      setCoverFees(false)
+      
+    } catch (error) {
+      console.error('Error processing donation:', error)
+      alert('There was an error processing your donation. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -95,24 +157,78 @@ export default function DonationForm({ campaignId }: { campaignId: string }) {
         </RadioGroup>
       </div>
 
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="donorName">Your Name</Label>
+          <Input 
+            id="donorName" 
+            placeholder="Enter your name" 
+            value={donorName}
+            onChange={(e) => setDonorName(e.target.value)}
+            disabled={isAnonymous}
+            required={!isAnonymous}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="email">Email Address</Label>
+          <Input 
+            id="email" 
+            type="email" 
+            placeholder="Enter your email" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="message">Leave a Message (Optional)</Label>
-        <Textarea id="message" placeholder="Add a message of support..." className="resize-none" />
+        <Textarea 
+          id="message" 
+          placeholder="Add a message of support..." 
+          className="resize-none"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+        />
       </div>
 
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
-          <input type="checkbox" className="rounded text-primary focus:ring-primary" />
+          <input 
+            type="checkbox" 
+            className="rounded text-primary focus:ring-primary"
+            checked={isAnonymous}
+            onChange={(e) => {
+              setIsAnonymous(e.target.checked);
+              if (e.target.checked) {
+                setDonorName("");
+              }
+            }}
+          />
           <span className="text-sm">Make this donation anonymous</span>
         </Label>
         <Label className="flex items-center gap-2">
-          <input type="checkbox" className="rounded text-primary focus:ring-primary" />
+          <input 
+            type="checkbox" 
+            className="rounded text-primary focus:ring-primary"
+            checked={coverFees}
+            onChange={(e) => setCoverFees(e.target.checked)}
+          />
           <span className="text-sm">Cover transaction fees ($2.50)</span>
         </Label>
       </div>
 
-      <Button type="submit" className="w-full">
-        Donate Now
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? (
+          <>
+            <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+            Processing...
+          </>
+        ) : (
+          "Donate Now"
+        )}
       </Button>
 
       <p className="text-xs text-center text-gray-500 dark:text-gray-400">

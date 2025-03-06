@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,11 +14,102 @@ import { Badge } from "@/components/ui/badge"
 import { Bell, Mail, Shield } from "lucide-react"
 
 export default function SettingsPage() {
+  const [settings, setSettings] = useState({
+    platformName: 'MediCare',
+    platformUrl: 'https://medicare.example.com',
+    supportEmail: 'support@medicare.example.com',
+    platformDescription: 'MediCare is a platform that connects those in need of medical funding with compassionate donors ready to help.',
+    maintenanceMode: false,
+    defaultFee: 5,
+    minGoal: 500,
+    maxGoal: 1000000,
+    campaignDuration: 90,
+    autoApprove: false,
+    verification: {
+      requireDiagnosis: true,
+      requireCost: true,
+      requireInsurance: true,
+      requireID: true,
+      requireProviderContact: true,
+      verificationTimeout: 48,
+      twoStepVerification: true
+    }
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    async function fetchSettings() {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const data = await response.json();
+          setSettings(prevSettings => ({
+            ...prevSettings,
+            ...data
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchSettings();
+  }, []);
+
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
+      });
+      
+      if (response.ok) {
+        // Show success message
+        alert('Settings saved successfully');
+      } else {
+        // Show error message
+        alert('Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Error saving settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChange = (field: string, value: any) => {
+    setSettings(prevSettings => ({
+      ...prevSettings,
+      [field]: value
+    }));
+  };
+
+  const handleVerificationChange = (field: string, value: any) => {
+    setSettings(prevSettings => ({
+      ...prevSettings,
+      verification: {
+        ...prevSettings.verification,
+        [field]: value
+      }
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <Button>Save Changes</Button>
+        <Button onClick={handleSaveSettings} disabled={saving}>
+          {saving ? 'Saving...' : 'Save Changes'}
+        </Button>
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
@@ -38,21 +132,34 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="platform-name">Platform Name</Label>
-                <Input id="platform-name" defaultValue="MediCare" />
+                <Input 
+                  id="platform-name" 
+                  value={settings.platformName} 
+                  onChange={(e) => handleChange('platformName', e.target.value)} 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="platform-url">Platform URL</Label>
-                <Input id="platform-url" defaultValue="https://medicare.example.com" />
+                <Input 
+                  id="platform-url" 
+                  value={settings.platformUrl} 
+                  onChange={(e) => handleChange('platformUrl', e.target.value)} 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="support-email">Support Email</Label>
-                <Input id="support-email" defaultValue="support@medicare.example.com" />
+                <Input 
+                  id="support-email" 
+                  value={settings.supportEmail} 
+                  onChange={(e) => handleChange('supportEmail', e.target.value)} 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="platform-description">Platform Description</Label>
                 <Textarea
                   id="platform-description"
-                  defaultValue="MediCare is a platform that connects those in need of medical funding with compassionate donors ready to help."
+                  value={settings.platformDescription}
+                  onChange={(e) => handleChange('platformDescription', e.target.value)}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -62,7 +169,11 @@ export default function SettingsPage() {
                     Put the platform in maintenance mode
                   </div>
                 </div>
-                <Switch id="maintenance-mode" />
+                <Switch 
+                  id="maintenance-mode" 
+                  checked={settings.maintenanceMode}
+                  onCheckedChange={(checked) => handleChange('maintenanceMode', checked)}
+                />
               </div>
             </CardContent>
             <CardFooter>
@@ -80,22 +191,42 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="default-fee">Platform Fee (%)</Label>
-                <Input id="default-fee" type="number" defaultValue="5" />
+                <Input 
+                  id="default-fee" 
+                  type="number" 
+                  value={settings.defaultFee}
+                  onChange={(e) => handleChange('defaultFee', Number(e.target.value))}
+                />
                 <p className="text-sm text-muted-foreground">
                   Percentage fee applied to each donation to cover platform costs
                 </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="min-goal">Minimum Campaign Goal ($)</Label>
-                <Input id="min-goal" type="number" defaultValue="500" />
+                <Input 
+                  id="min-goal" 
+                  type="number" 
+                  value={settings.minGoal}
+                  onChange={(e) => handleChange('minGoal', Number(e.target.value))}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="max-goal">Maximum Campaign Goal ($)</Label>
-                <Input id="max-goal" type="number" defaultValue="1000000" />
+                <Input 
+                  id="max-goal" 
+                  type="number" 
+                  value={settings.maxGoal}
+                  onChange={(e) => handleChange('maxGoal', Number(e.target.value))}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="campaign-duration">Default Campaign Duration (days)</Label>
-                <Input id="campaign-duration" type="number" defaultValue="90" />
+                <Input 
+                  id="campaign-duration" 
+                  type="number" 
+                  value={settings.campaignDuration}
+                  onChange={(e) => handleChange('campaignDuration', Number(e.target.value))}
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -104,7 +235,11 @@ export default function SettingsPage() {
                     Automatically approve campaigns without manual review
                   </div>
                 </div>
-                <Switch id="auto-approve" />
+                <Switch 
+                  id="auto-approve" 
+                  checked={settings.autoApprove}
+                  onCheckedChange={(checked) => handleChange('autoApprove', checked)}
+                />
               </div>
             </CardContent>
             <CardFooter>
@@ -129,7 +264,10 @@ export default function SettingsPage() {
                     Require a medical diagnosis document
                   </div>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.verification.requireDiagnosis}
+                  onCheckedChange={(checked) => handleVerificationChange('requireDiagnosis', checked)}
+                />
               </div>
               <Separator />
               <div className="flex items-center justify-between">
@@ -139,7 +277,10 @@ export default function SettingsPage() {
                     Require a cost estimate from healthcare provider
                   </div>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.verification.requireCost}
+                  onCheckedChange={(checked) => handleVerificationChange('requireCost', checked)}
+                />
               </div>
               <Separator />
               <div className="flex items-center justify-between">
@@ -149,7 +290,10 @@ export default function SettingsPage() {
                     Require insurance information if applicable
                   </div>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.verification.requireInsurance}
+                  onCheckedChange={(checked) => handleVerificationChange('requireInsurance', checked)}
+                />
               </div>
               <Separator />
               <div className="flex items-center justify-between">
@@ -159,7 +303,10 @@ export default function SettingsPage() {
                     Require government-issued ID verification
                   </div>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.verification.requireID}
+                  onCheckedChange={(checked) => handleVerificationChange('requireID', checked)}
+                />
               </div>
               <Separator />
               <div className="flex items-center justify-between">
@@ -169,7 +316,10 @@ export default function SettingsPage() {
                     Require contact information for healthcare provider
                   </div>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.verification.requireProviderContact}
+                  onCheckedChange={(checked) => handleVerificationChange('requireProviderContact', checked)}
+                />
               </div>
             </CardContent>
             <CardFooter>
@@ -187,7 +337,12 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="verification-timeout">Verification Timeout (hours)</Label>
-                <Input id="verification-timeout" type="number" defaultValue="48" />
+                <Input 
+                  id="verification-timeout" 
+                  type="number" 
+                  value={settings.verification.verificationTimeout}
+                  onChange={(e) => handleVerificationChange('verificationTimeout', Number(e.target.value))}
+                />
                 <p className="text-sm text-muted-foreground">
                   Maximum time allowed for verification before auto-rejection
                 </p>
@@ -212,7 +367,10 @@ export default function SettingsPage() {
                     Require two separate reviewers to approve a campaign
                   </div>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.verification.twoStepVerification}
+                  onCheckedChange={(checked) => handleVerificationChange('twoStepVerification', checked)}
+                />
               </div>
             </CardContent>
             <CardFooter>
@@ -249,7 +407,7 @@ export default function SettingsPage() {
                   <div className="space-y-0.5">
                     <Label>Donation Notifications</Label>
                     <div className="text-sm text-muted-foreground">
-                      Receive email for large donations (>$1000)
+                      Receive email for large donations ({'>'}$1000)
                     </div>
                   </div>
                 </div>
@@ -548,5 +706,16 @@ export default function SettingsPage() {
                     <Switch id="webhook-campaign" defaultChecked />
                     <Label htmlFor="webhook-campaign">Campaign Events</Label>
                   </div>
-                  <div className
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button>Save Changes</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
 

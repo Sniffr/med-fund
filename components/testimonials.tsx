@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ChevronLeft, ChevronRight, Quote } from "lucide-react"
@@ -8,8 +8,43 @@ import { Button } from "@/components/ui/button"
 
 export default function Testimonials() {
   const [currentIndex, setCurrentIndex] = useState(0)
-
-  const testimonials = [
+  const [testimonials, setTestimonials] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch testimonials from API
+        const response = await fetch('/api/testimonials')
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (Array.isArray(data) && data.length > 0) {
+            setTestimonials(data)
+          } else {
+            // Fallback to sample data if API returns empty array
+            setTestimonials(sampleTestimonials)
+          }
+        } else {
+          // Fallback to sample data if API fails
+          setTestimonials(sampleTestimonials)
+        }
+      } catch (error) {
+        console.error('Error fetching testimonials:', error)
+        // Fallback to sample data on error
+        setTestimonials(sampleTestimonials)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchTestimonials()
+  }, [])
+  
+  // Sample testimonials as fallback
+  const sampleTestimonials = [
     {
       id: 1,
       name: "Michael Johnson",
@@ -73,50 +108,62 @@ export default function Testimonials() {
         </div>
 
         <div className="mt-12 relative">
-          <Card className="border-none shadow-lg">
-            <CardContent className="p-8 md:p-12">
-              <Quote className="h-12 w-12 text-primary/20 mb-6" />
-              <p className="text-xl md:text-2xl font-medium mb-8">{testimonials[currentIndex].quote}</p>
-              <div className="flex items-center">
-                <Avatar className="h-12 w-12 mr-4">
-                  <AvatarImage src={testimonials[currentIndex].avatar} alt={testimonials[currentIndex].name} />
-                  <AvatarFallback>{testimonials[currentIndex].name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h4 className="font-semibold">{testimonials[currentIndex].name}</h4>
-                  <div
-                    className={`text-sm px-2 py-1 rounded-full inline-block mt-1 ${getTypeColor(testimonials[currentIndex].type)}`}
-                  >
-                    {testimonials[currentIndex].role}
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          ) : testimonials.length > 0 ? (
+            <Card className="border-none shadow-lg">
+              <CardContent className="p-8 md:p-12">
+                <Quote className="h-12 w-12 text-primary/20 mb-6" />
+                <p className="text-xl md:text-2xl font-medium mb-8">{testimonials[currentIndex].quote}</p>
+                <div className="flex items-center">
+                  <Avatar className="h-12 w-12 mr-4">
+                    <AvatarImage src={testimonials[currentIndex].avatar} alt={testimonials[currentIndex].name} />
+                    <AvatarFallback>{testimonials[currentIndex].name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h4 className="font-semibold">{testimonials[currentIndex].name}</h4>
+                    <div
+                      className={`text-sm px-2 py-1 rounded-full inline-block mt-1 ${getTypeColor(testimonials[currentIndex].type)}`}
+                    >
+                      {testimonials[currentIndex].role}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-gray-500">No success stories found.</p>
+            </div>
+          )}
 
-          <div className="flex justify-center mt-8 space-x-2">
-            <Button variant="outline" size="icon" onClick={prevTestimonial} className="rounded-full">
-              <ChevronLeft className="h-4 w-4" />
-              <span className="sr-only">Previous</span>
-            </Button>
-            {testimonials.map((_, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentIndex(index)}
-                className={`w-3 h-3 rounded-full p-0 ${
-                  currentIndex === index ? "bg-primary border-primary" : "bg-transparent"
-                }`}
-              >
-                <span className="sr-only">Go to slide {index + 1}</span>
+          {!loading && testimonials.length > 0 && (
+            <div className="flex justify-center mt-8 space-x-2">
+              <Button variant="outline" size="icon" onClick={prevTestimonial} className="rounded-full">
+                <ChevronLeft className="h-4 w-4" />
+                <span className="sr-only">Previous</span>
               </Button>
-            ))}
-            <Button variant="outline" size="icon" onClick={nextTestimonial} className="rounded-full">
-              <ChevronRight className="h-4 w-4" />
-              <span className="sr-only">Next</span>
-            </Button>
-          </div>
+              {testimonials.map((_, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentIndex(index)}
+                  className={`w-3 h-3 rounded-full p-0 ${
+                    currentIndex === index ? "bg-primary border-primary" : "bg-transparent"
+                  }`}
+                >
+                  <span className="sr-only">Go to slide {index + 1}</span>
+                </Button>
+              ))}
+              <Button variant="outline" size="icon" onClick={nextTestimonial} className="rounded-full">
+                <ChevronRight className="h-4 w-4" />
+                <span className="sr-only">Next</span>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </section>

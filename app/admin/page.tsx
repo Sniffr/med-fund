@@ -1,13 +1,54 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { ArrowUpRight, Clock, DollarSign, FileWarning, Heart, TrendingUp, Users } from "lucide-react"
-import { RecentCampaigns } from "@/components/admin/recent-campaigns"
-import { DonationChart } from "@/components/admin/donation-chart"
-import { VerificationQueue } from "@/components/admin/verification-queue"
+import RecentCampaigns from "@/components/admin/recent-campaigns"
+import DonationChart from "@/components/admin/donation-chart"
+import VerificationQueue from "@/components/admin/verification-queue"
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState({
+    totalCampaigns: 0,
+    totalDonations: 0,
+    activeUsers: 0,
+    pendingVerifications: 0
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchDashboardStats() {
+      try {
+        const response = await fetch('/api/admin/dashboard')
+        if (response.ok) {
+          const data = await response.json()
+          
+          // Process campaign stats
+          const campaignStats: Record<string, number> = {}
+          data.campaignStats.forEach((stat: {_id: string, count: number}) => {
+            campaignStats[stat._id] = stat.count
+          })
+          
+          setStats({
+            totalCampaigns: Object.values(campaignStats).reduce((a: number, b: number) => a + b, 0),
+            totalDonations: data.totalDonationsAmount || 0,
+            activeUsers: 0, // This would come from a real API
+            pendingVerifications: data.pendingVerifications || 0
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardStats()
+  }, [])
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -22,19 +63,31 @@ export default function AdminDashboard() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard title="Total Campaigns" value="5,231" description="+12% from last month" icon={Heart} trend="up" />
+        <StatsCard 
+          title="Total Campaigns" 
+          value={loading ? "Loading..." : stats.totalCampaigns.toLocaleString()} 
+          description="All campaigns" 
+          icon={Heart} 
+          trend="neutral" 
+        />
         <StatsCard
           title="Total Donations"
-          value="$1.2M"
-          description="+8% from last month"
+          value={loading ? "Loading..." : `$${stats.totalDonations.toLocaleString()}`}
+          description="All time donations"
           icon={DollarSign}
-          trend="up"
+          trend="neutral"
         />
-        <StatsCard title="Active Users" value="12,234" description="+18% from last month" icon={Users} trend="up" />
+        <StatsCard 
+          title="Active Users" 
+          value={loading ? "Loading..." : stats.activeUsers.toLocaleString()} 
+          description="Registered users" 
+          icon={Users} 
+          trend="neutral" 
+        />
         <StatsCard
           title="Pending Verification"
-          value="42"
-          description="8 urgent reviews needed"
+          value={loading ? "Loading..." : stats.pendingVerifications.toLocaleString()}
+          description="Campaigns awaiting review"
           icon={Clock}
           trend="neutral"
         />
@@ -125,25 +178,30 @@ export default function AdminDashboard() {
       </Tabs>
 
       {/* Alerts */}
-      <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-900/20">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-orange-700 dark:text-orange-400 flex items-center">
-            <FileWarning className="mr-2 h-5 w-5" />
-            Attention Required
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-orange-700 dark:text-orange-400">
-            There are 8 campaigns with urgent verification needs. Please review them as soon as possible.
-          </p>
-          <Button
-            variant="outline"
-            className="mt-2 border-orange-200 bg-white text-orange-700 hover:bg-orange-100 dark:border-orange-800 dark:bg-gray-800 dark:hover:bg-orange-900/30"
-          >
-            Review Urgent Cases
-          </Button>
-        </CardContent>
-      </Card>
+      {stats.pendingVerifications > 0 && (
+        <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-900/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-orange-700 dark:text-orange-400 flex items-center">
+              <FileWarning className="mr-2 h-5 w-5" />
+              Attention Required
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-orange-700 dark:text-orange-400">
+              There are {stats.pendingVerifications} campaigns with verification needs. Please review them as soon as possible.
+            </p>
+            <Button
+              variant="outline"
+              className="mt-2 border-orange-200 bg-white text-orange-700 hover:bg-orange-100 dark:border-orange-800 dark:bg-gray-800 dark:hover:bg-orange-900/30"
+              asChild
+            >
+              <Link href="/admin/verification">
+                Review Verification Queue
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

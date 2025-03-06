@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,39 +16,83 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function CreateCampaignPage() {
   const [currentStep, setCurrentStep] = useState(1)
-  const [formData, setFormData] = useState({
-    title: "",
-    category: "",
-    patientName: "",
-    patientAge: "",
-    relationship: "",
-    goal: "",
-    story: "",
-    treatmentPlan: "",
-    files: [] as File[],
+  const [formData, setFormData] = useState(() => {
+    // Load from localStorage if available
+    if (typeof window !== 'undefined') {
+      const savedData = localStorage.getItem('campaignFormData')
+      return savedData ? JSON.parse(savedData) : {
+        title: "",
+        category: "",
+        patientName: "",
+        patientAge: "",
+        relationship: "",
+        goal: "",
+        story: "",
+        treatmentPlan: "",
+        files: [],
+      }
+    }
+    return {
+      title: "",
+      category: "",
+      patientName: "",
+      patientAge: "",
+      relationship: "",
+      goal: "",
+      story: "",
+      treatmentPlan: "",
+      files: [],
+    }
   })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    const updatedData = { ...formData, [name]: value }
+    setFormData(updatedData)
+    localStorage.setItem('campaignFormData', JSON.stringify(updatedData))
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    const updatedData = { ...formData, [name]: value }
+    setFormData(updatedData)
+    localStorage.setItem('campaignFormData', JSON.stringify(updatedData))
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
-      setFormData((prev) => ({ ...prev, files: [...prev.files, ...newFiles] }))
+      // Note: Files can't be stored in localStorage, so we'll just update the state
+      setFormData((prev: any) => ({ ...prev, files: [...prev.files, ...newFiles] }))
+      // We can store file metadata in localStorage if needed
+      const updatedFormData = { ...formData }
+      updatedFormData.files = [...formData.files, ...newFiles].map((file: File) => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+      }))
+      localStorage.setItem('campaignFormData', JSON.stringify(updatedFormData))
     }
   }
 
   const handleRemoveFile = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      files: prev.files.filter((_, i) => i !== index),
+    const updatedFiles = formData.files.filter((_: any, i: number) => i !== index)
+    const updatedData = {
+      ...formData,
+      files: updatedFiles
+    }
+    setFormData(updatedData)
+    
+    // Update localStorage with file metadata
+    const filesMetadata = updatedFiles.map((file: File) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
     }))
+    
+    const storageData = { ...formData, files: filesMetadata }
+    localStorage.setItem('campaignFormData', JSON.stringify(storageData))
   }
 
   const nextStep = () => {
@@ -61,10 +105,44 @@ export default function CreateCampaignPage() {
     window.scrollTo(0, 0)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // In a real app, this would submit the form data to the server
-    alert("Campaign submitted for review!")
+    
+    try {
+      // Create FormData for file uploads
+      const formDataObj = new FormData()
+      formDataObj.append('title', formData.title)
+      formDataObj.append('category', formData.category)
+      formDataObj.append('patientName', formData.patientName)
+      formDataObj.append('patientAge', formData.patientAge)
+      formDataObj.append('relationship', formData.relationship)
+      formDataObj.append('goal', formData.goal)
+      formDataObj.append('story', formData.story)
+      formDataObj.append('treatmentPlan', formData.treatmentPlan)
+      
+      // Add files to FormData
+      formData.files.forEach((file: File, index: number) => {
+        formDataObj.append(`files`, file)
+      })
+      
+      // Submit to API
+      const response = await fetch('/api/campaigns', {
+        method: 'POST',
+        body: formDataObj,
+      })
+      
+      if (response.ok) {
+        // Clear localStorage on successful submission
+        localStorage.removeItem('campaignFormData')
+        alert("Campaign submitted for review!")
+      } else {
+        const error = await response.json()
+        alert(`Error: ${error.message || 'Failed to submit campaign'}`)
+      }
+    } catch (error: any) {
+      console.error('Error submitting campaign:', error)
+      alert('An error occurred while submitting your campaign')
+    }
   }
 
   return (
@@ -337,11 +415,11 @@ export default function CreateCampaignPage() {
                         </div>
                       </div>
 
-                      {formData.files.length > 0 && (
+                      {formData.files && formData.files.length > 0 && (
                         <div className="space-y-2">
                           <Label>Uploaded Files</Label>
                           <div className="space-y-2">
-                            {formData.files.map((file, index) => (
+                            {formData.files.map((file: File, index: number) => (
                               <div
                                 key={index}
                                 className="flex items-center justify-between p-2 bg-gray-50 rounded-lg dark:bg-gray-800"
@@ -423,13 +501,13 @@ export default function CreateCampaignPage() {
                           </div>
                         </TabsContent>
                         <TabsContent value="documents" className="space-y-4 py-4">
-                          {formData.files.length > 0 ? (
+                          {formData.files && formData.files.length > 0 ? (
                             <div>
                               <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400">
                                 Uploaded Documents
                               </h4>
                               <ul className="mt-2 space-y-1">
-                                {formData.files.map((file, index) => (
+                                {formData.files.map((file: File, index: number) => (
                                   <li key={index} className="text-sm">
                                     {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
                                   </li>
