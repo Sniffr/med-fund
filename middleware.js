@@ -1,5 +1,17 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth } from './lib/auth';
+import jwt from 'jsonwebtoken';
+
+// JWT secret key
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// Simple token verification that doesn't use MongoDB (edge compatible)
+function verifyToken(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
+}
 
 export async function middleware(request) {
   // Check if the path starts with /admin
@@ -12,8 +24,8 @@ export async function middleware(request) {
     }
     
     try {
-      const verifiedToken = await verifyAuth(token);
-      if (verifiedToken.role !== 'admin' && verifiedToken.role !== 'moderator') {
+      const decoded = verifyToken(token);
+      if (!decoded || (decoded.role !== 'admin' && decoded.role !== 'moderator')) {
         return NextResponse.redirect(new URL('/', request.url));
       }
     } catch (error) {
