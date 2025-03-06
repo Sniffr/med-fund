@@ -266,47 +266,6 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
     )
   }
 
-  // Use fallback data if loading or error
-  const displayCampaign = campaign || fallbackCampaign
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <section className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
-          </div>
-        </section>
-      </div>
-    )
-  }
-  
-  // Show error state
-  if (error) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <section className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Campaign Not Found</h1>
-                <p className="max-w-[700px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  {error}
-                </p>
-                <Button asChild className="mt-4">
-                  <a href="/campaigns">Browse Other Campaigns</a>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col min-h-screen">
       <section className="w-full py-12 md:py-24 lg:py-32">
@@ -568,4 +527,3 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
     </div>
   )
 }
-
