@@ -415,7 +415,7 @@ export default function CreateCampaignPage() {
                         </div>
                       </div>
 
-                      {formData.files.length > 0 && (
+                      {formData.files && formData.files.length > 0 && (
                         <div className="space-y-2">
                           <Label>Uploaded Files</Label>
                           <div className="space-y-2">
@@ -501,7 +501,7 @@ export default function CreateCampaignPage() {
                           </div>
                         </TabsContent>
                         <TabsContent value="documents" className="space-y-4 py-4">
-                          {formData.files.length > 0 ? (
+                          {formData.files && formData.files.length > 0 ? (
                             <div>
                               <h4 className="font-medium text-sm text-gray-500 dark:text-gray-400">
                                 Uploaded Documents
