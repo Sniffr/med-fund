@@ -30,29 +30,35 @@ export default function FeaturedCampaigns() {
         if (typeof fetchCampaigns === 'function') {
           // Fetch urgent campaigns (those with close deadlines)
           const urgentResponse = await fetchCampaigns({ 
+            page: 1,
             limit: 3,
+            category: '',
             sort: 'timeline.endDate',
             status: 'active'
           })
           
           // Fetch trending campaigns (those with highest percentage funded)
           const trendingResponse = await fetchCampaigns({ 
+            page: 1,
             limit: 3,
+            category: '',
             sort: 'raised',
             status: 'active'
           })
           
           // Fetch recent campaigns
           const recentResponse = await fetchCampaigns({ 
+            page: 1,
             limit: 3,
+            category: '',
             sort: 'createdAt',
             status: 'active'
           })
           
           setCampaignsData({
-            urgent: urgentResponse.campaigns.map(formatCampaign),
-            trending: trendingResponse.campaigns.map(formatCampaign),
-            recent: recentResponse.campaigns.map(formatCampaign)
+            urgent: (urgentResponse as any).campaigns?.map(formatCampaign) || [],
+            trending: (trendingResponse as any).campaigns?.map(formatCampaign) || [],
+            recent: (recentResponse as any).campaigns?.map(formatCampaign) || []
           })
         } else {
           // Fallback to direct fetch if API helper is not available
@@ -112,7 +118,7 @@ export default function FeaturedCampaigns() {
   }
   
   // Helper function to format campaign data from direct API
-  const formatCampaigns = (campaigns) => {
+  const formatCampaigns = (campaigns: any[]) => {
     if (!Array.isArray(campaigns)) return []
     
     return campaigns.map((campaign) => {
@@ -125,7 +131,7 @@ export default function FeaturedCampaigns() {
       const endDate = new Date(createdAt)
       endDate.setDate(endDate.getDate() + 30)
       const today = new Date()
-      const diffTime = endDate - today
+      const diffTime = endDate.getTime() - today.getTime()
       const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
       
       return {
