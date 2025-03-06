@@ -1,6 +1,6 @@
 import { getUserByEmail } from '@/lib/db/models/user';
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import { comparePassword } from '@/lib/auth';
 import jwt from 'jsonwebtoken';
 
 export async function POST(request) {
@@ -33,7 +33,7 @@ export async function POST(request) {
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json(
         { message: 'Invalid credentials' },
