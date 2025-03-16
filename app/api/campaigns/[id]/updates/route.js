@@ -43,17 +43,14 @@ export async function GET(request, { params }) {
 export async function POST(request, { params }) {
   try {
     // Verify authentication
-    const token = request.cookies.get('auth_token')?.value;
-    if (!token) {
-      return NextResponse.json(
-        { message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    let user;
     try {
-      user = await verifyAuth(token);
+      const user = await verifyAuth(request);
+      if (!user) {
+        return NextResponse.json(
+          { message: 'Authentication required' },
+          { status: 401 }
+        );
+      }
     } catch (error) {
       return NextResponse.json(
         { message: 'Invalid authentication token' },

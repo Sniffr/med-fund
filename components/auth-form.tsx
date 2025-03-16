@@ -56,14 +56,29 @@ export default function AuthForm({ type }: AuthFormProps) {
 
       // Submit form
       if (type === "login") {
-        const response = await loginUser({
-          email: formData.email,
-          password: formData.password
-        })
-        
-        // Store token in cookie (handled by API)
-        router.push("/")
-        router.refresh()
+        try {
+          const response = await loginUser({
+            email: formData.email,
+            password: formData.password
+          });
+          
+          console.log('Login response:', response);
+          
+          // Check for redirect URL in query params
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirectUrl = urlParams.get('redirect') || '/';
+          
+          console.log('Redirecting to:', redirectUrl);
+          
+          // Wait a moment for the cookie to be set
+          setTimeout(() => {
+            // Navigate to the redirect URL
+            window.location.href = redirectUrl;
+          }, 500);
+        } catch (loginError) {
+          console.error('Login error:', loginError);
+          throw loginError;
+        }
       } else {
         const response = await registerUser({
           name: formData.name,

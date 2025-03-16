@@ -44,7 +44,7 @@ export async function POST(request) {
     // Create JWT token
     const token = jwt.sign(
       { 
-        userId: user._id,
+        id: user._id,
         email: user.email,
         role: user.role
       },
@@ -73,7 +73,7 @@ export async function POST(request) {
       httpOnly: true,
       path: '/',
       maxAge: 60 * 60 * 24, // 1 day
-      sameSite: 'strict'
+      sameSite: 'lax' // Changed from 'strict' to allow redirects
     });
 
     return response;

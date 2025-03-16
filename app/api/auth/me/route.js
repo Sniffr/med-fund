@@ -10,40 +10,41 @@ export async function GET(request) {
     
     if (!token) {
       return NextResponse.json(
-        { message: 'Not authenticated' },
-        { status: 401 }
+        { message: 'Not authenticated', user: null },
+        { status: 200 }
       );
     }
     
     // Verify token
     const decoded = verifyToken(token);
+    console.log('Decoded token in /api/auth/me:', decoded);
     
-    if (!decoded || !decoded.userId) {
+    if (!decoded || !decoded.id) {
       return NextResponse.json(
-        { message: 'Invalid token' },
-        { status: 401 }
+        { message: 'Invalid token', user: null },
+        { status: 200 }
       );
     }
     
     // Get user from database
-    const user = await getUserById(decoded.userId);
+    const user = await getUserById(decoded.id);
     
     if (!user) {
       return NextResponse.json(
-        { message: 'User not found' },
-        { status: 404 }
+        { message: 'User not found', user: null },
+        { status: 200 }
       );
     }
     
     // Remove password from response
     const { password, ...userWithoutPassword } = user;
     
-    return NextResponse.json(userWithoutPassword);
+    return NextResponse.json({ user: userWithoutPassword });
   } catch (error) {
     console.error('Error getting current user:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
+      { message: 'Internal server error', user: null },
+      { status: 200 }
     );
   }
 }

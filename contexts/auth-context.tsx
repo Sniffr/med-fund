@@ -30,7 +30,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true)
       const userData = await getCurrentUser()
-      setUser(userData)
+      if (userData) {
+        setUser(userData as User)
+      }
     } catch (error) {
       console.error("Error refreshing user:", error)
       setUser(null)
