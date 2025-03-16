@@ -59,18 +59,23 @@ export async function POST(request, { params }) {
     
     if (campaignCreator && campaignCreator.email) {
       // Send email notification
-      await sendEmail({
-        to: campaignCreator.email,
-        subject: 'Your Campaign Needs Attention',
-        text: `Your campaign "${campaign.title}" could not be verified at this time. Reason: ${reason || 'Did not meet verification requirements'}. Please update your campaign and submit it for verification again.`,
-        html: `
-          <h1>Your Campaign Needs Attention</h1>
-          <p>Your campaign "${campaign.title}" could not be verified at this time.</p>
-          <p><strong>Reason:</strong> ${reason || 'Did not meet verification requirements'}</p>
-          <p>Please update your campaign and submit it for verification again.</p>
-          <p>You can edit your campaign at <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/campaigns/${id}/edit">this link</a>.</p>
-        `
-      });
+      try {
+        await sendEmail({
+          to: campaignCreator.email,
+          subject: 'Your Campaign Needs Attention',
+          text: `Your campaign "${campaign.title}" could not be verified at this time. Reason: ${reason || 'Did not meet verification requirements'}. Please update your campaign and submit it for verification again.`,
+          html: `
+            <h1>Your Campaign Needs Attention</h1>
+            <p>Your campaign "${campaign.title}" could not be verified at this time.</p>
+            <p><strong>Reason:</strong> ${reason || 'Did not meet verification requirements'}</p>
+            <p>Please update your campaign and submit it for verification again.</p>
+            <p>You can edit your campaign at <a href="${process.env.NEXT_PUBLIC_BASE_URL}/campaigns/${id}/edit">this link</a>.</p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Error sending rejection email:', emailError);
+        // Continue execution even if email fails
+      }
     }
     
     // Create notification

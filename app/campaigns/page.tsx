@@ -79,7 +79,7 @@ export default function CampaignsPage() {
       const response = await fetchCampaigns(filterObj)
       
       setCampaigns(response.campaigns || [])
-      setTotalPages(response.totalPages || 1)
+      setTotalPages(response.pagination?.pages || 1)
     } catch (error) {
       console.error("Error loading campaigns:", error)
     } finally {

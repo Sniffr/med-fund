@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint --dir base --fix --max-warnings=0"
+    "lint": "next lint --dir base --fix --max-warnings=0",
+    "test:email": "node test/email-test.js",
+    "test:mongodb": "node test/mongodb-test.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",

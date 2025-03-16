@@ -53,16 +53,21 @@ export async function POST(request, { params }) {
     
     if (campaignCreator && campaignCreator.email) {
       // Send email notification
-      await sendEmail({
-        to: campaignCreator.email,
-        subject: 'Your Campaign Has Been Verified',
-        text: `Congratulations! Your campaign "${campaign.title}" has been verified and is now live on our platform.`,
-        html: `
-          <h1>Congratulations!</h1>
-          <p>Your campaign "${campaign.title}" has been verified and is now live on our platform.</p>
-          <p>You can view your campaign at <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/campaigns/${id}">this link</a>.</p>
-        `
-      });
+      try {
+        await sendEmail({
+          to: campaignCreator.email,
+          subject: 'Your Campaign Has Been Verified',
+          text: `Congratulations! Your campaign "${campaign.title}" has been verified and is now live on our platform.`,
+          html: `
+            <h1>Congratulations!</h1>
+            <p>Your campaign "${campaign.title}" has been verified and is now live on our platform.</p>
+            <p>You can view your campaign at <a href="${process.env.NEXT_PUBLIC_BASE_URL}/campaigns/${id}">this link</a>.</p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Error sending verification email:', emailError);
+        // Continue execution even if email fails
+      }
     }
     
     // Create notification

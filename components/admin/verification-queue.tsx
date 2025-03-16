@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 
 interface Campaign {
   _id: string;
@@ -36,7 +35,7 @@ const VerificationQueue: React.FC<VerificationQueueProps> = ({ className }) => {
         }
         
         const data = await response.json();
-        setCampaigns(data);
+        setCampaigns(data.campaigns || []);
         setError(null);
       } catch (err) {
         console.error('Error fetching campaigns:', err);
@@ -131,7 +130,7 @@ const VerificationQueue: React.FC<VerificationQueueProps> = ({ className }) => {
                 </span>
               </div>
               <div className="text-sm text-gray-500 mt-1">
-                Submitted {formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true })}
+                Submitted {new Date(campaign.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
               </div>
               <div className="mt-2 text-sm">
                 <span className="text-gray-600">Medical condition: {campaign.medicalCondition || 'Not specified'}</span>

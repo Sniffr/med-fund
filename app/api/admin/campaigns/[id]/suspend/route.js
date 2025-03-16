@@ -58,17 +58,22 @@ export async function POST(request, { params }) {
     
     if (campaignCreator && campaignCreator.email) {
       // Send email notification
-      await sendEmail({
-        to: campaignCreator.email,
-        subject: 'Your Campaign Has Been Suspended',
-        text: `Your campaign "${campaign.title}" has been suspended. Reason: ${reason || 'Suspended by administrator'}. Please contact support for more information.`,
-        html: `
-          <h1>Your Campaign Has Been Suspended</h1>
-          <p>Your campaign "${campaign.title}" has been suspended.</p>
-          <p><strong>Reason:</strong> ${reason || 'Suspended by administrator'}</p>
-          <p>Please contact support for more information and to discuss next steps.</p>
-        `
-      });
+      try {
+        await sendEmail({
+          to: campaignCreator.email,
+          subject: 'Your Campaign Has Been Suspended',
+          text: `Your campaign "${campaign.title}" has been suspended. Reason: ${reason || 'Suspended by administrator'}. Please contact support for more information.`,
+          html: `
+            <h1>Your Campaign Has Been Suspended</h1>
+            <p>Your campaign "${campaign.title}" has been suspended.</p>
+            <p><strong>Reason:</strong> ${reason || 'Suspended by administrator'}</p>
+            <p>Please contact support for more information and to discuss next steps.</p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Error sending suspension email:', emailError);
+        // Continue execution even if email fails
+      }
     }
     
     // Create notification
