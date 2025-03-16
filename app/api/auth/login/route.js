@@ -73,7 +73,8 @@ export async function POST(request) {
       httpOnly: true,
       path: '/',
       maxAge: 60 * 60 * 24, // 1 day
-      sameSite: 'lax' // Changed from 'strict' to allow redirects
+      sameSite: 'lax', // Changed from 'strict' to allow redirects
+      secure: process.env.NODE_ENV === 'production'
     });
 
     return response;

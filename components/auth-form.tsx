@@ -70,11 +70,8 @@ export default function AuthForm({ type }: AuthFormProps) {
           
           console.log('Redirecting to:', redirectUrl);
           
-          // Wait a moment for the cookie to be set
-          setTimeout(() => {
-            // Navigate to the redirect URL
-            window.location.href = redirectUrl;
-          }, 500);
+          // Navigate to the redirect URL immediately
+          window.location.href = redirectUrl;
         } catch (loginError) {
           console.error('Login error:', loginError);
           throw loginError;

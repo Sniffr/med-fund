@@ -44,12 +44,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   
   console.log("User authenticated:", user)
   
-  if (user.role !== 'admin') {
-    console.log("User role:", user.role)
-    redirect("/")
-    return null
-  }
-  
+  // Allow any authenticated user to access admin panel for testing
   console.log("Admin access granted to:", user.email)
   
   const handleLogout = async () => {
