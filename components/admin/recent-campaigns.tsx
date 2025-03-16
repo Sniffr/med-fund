@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 
 interface Campaign {
   _id: string;
@@ -35,7 +34,7 @@ const RecentCampaigns: React.FC<RecentCampaignsProps> = ({ className }) => {
         }
         
         const data = await response.json();
-        setCampaigns(data);
+        setCampaigns(data.campaigns || []);
         setError(null);
       } catch (err) {
         console.error('Error fetching campaigns:', err);
@@ -94,7 +93,7 @@ const RecentCampaigns: React.FC<RecentCampaignsProps> = ({ className }) => {
                 </span>
               </div>
               <div className="text-sm text-gray-500 mt-1">
-                Created {formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true })}
+                Created {new Date(campaign.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
               </div>
               <div className="mt-2 text-sm">
                 <span className="text-gray-600">Goal: ${campaign.goalAmount.toLocaleString()}</span>
