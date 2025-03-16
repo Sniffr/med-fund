@@ -68,4 +68,5 @@ export function middleware(request) {
 // Configure the middleware to run on specific paths
 export const config = {
   matcher: ['/admin/:path*', '/api/admin/:path*'],
+  runtime: 'nodejs', // Use Node.js runtime instead of Edge
 };
