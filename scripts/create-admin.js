@@ -12,7 +12,7 @@ const bcrypt = require('bcryptjs');
 const readline = require('readline');
 
 // MongoDB connection string
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/med-fund';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://archer:LKJeP90UTTLr418t@cluster0.h5wj3us.mongodb.net/?retryWrites=true&w=majority';
 const DB_NAME = process.env.DB_NAME || 'med-fund';
 
 // Create readline interface for user input
