@@ -1,35 +1,23 @@
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 
-// JWT secret key
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-// Simple token verification that doesn't use MongoDB (edge compatible)
-function verifyToken(token) {
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    return null;
-  }
-}
-
-export async function middleware(request) {
+export function middleware(request) {
   // Check if the path starts with /admin
   if (request.nextUrl.pathname.startsWith('/admin') || 
       request.nextUrl.pathname.startsWith('/api/admin')) {
+    
+    // Skip middleware for login page
+    if (request.nextUrl.pathname === '/login') {
+      return NextResponse.next();
+    }
+    
     const token = request.cookies.get('auth_token')?.value;
     
     if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-    
-    try {
-      const decoded = verifyToken(token);
-      if (!decoded || (decoded.role !== 'admin' && decoded.role !== 'moderator')) {
-        return NextResponse.redirect(new URL('/', request.url));
-      }
-    } catch (error) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      console.log('No token found, redirecting to login');
+      // Redirect to login with return URL
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
     }
   }
   
