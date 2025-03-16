@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,7 +10,115 @@ import { CheckCircle, Clock, FileText, Filter, Search, XCircle } from "lucide-re
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+
 export default function VerificationPage() {
+  const [campaigns, setCampaigns] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState({ priority: 'all', category: 'all' })
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState('pending')
+  
+  useEffect(() => {
+    fetchCampaigns()
+  }, [activeTab, filter])
+  
+  const fetchCampaigns = async () => {
+    try {
+      setLoading(true)
+      // Build query parameters based on active tab and filters
+      const queryParams = new URLSearchParams()
+      
+      if (activeTab === 'pending') {
+        queryParams.append('status', 'pending')
+        queryParams.append('submittedForVerification', 'true')
+      } else if (activeTab === 'urgent') {
+        queryParams.append('status', 'pending')
+        queryParams.append('priority', 'urgent')
+        queryParams.append('submittedForVerification', 'true')
+      } else if (activeTab === 'approved') {
+        queryParams.append('status', 'verified')
+      } else if (activeTab === 'rejected') {
+        queryParams.append('status', 'rejected')
+      }
+      
+      if (filter.priority !== 'all') {
+        queryParams.append('priority', filter.priority)
+      }
+      
+      if (filter.category !== 'all') {
+        queryParams.append('category', filter.category)
+      }
+      
+      if (searchQuery) {
+        queryParams.append('search', searchQuery)
+      }
+      
+      const response = await fetch(`/api/admin/campaigns?${queryParams.toString()}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch campaigns')
+      }
+      
+      const data = await response.json()
+      setCampaigns(data.campaigns || [])
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching campaigns:', err)
+      setError('Failed to load campaigns')
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  const handleVerify = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/campaigns/${id}/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to verify campaign')
+      }
+      
+      // Refresh campaigns after successful verification
+      fetchCampaigns()
+    } catch (err) {
+      console.error('Error verifying campaign:', err)
+      alert('Failed to verify campaign. Please try again.')
+    }
+  }
+  
+  const handleReject = async (id: string) => {
+    try {
+      const reason = prompt('Please provide a reason for rejection:')
+      
+      if (reason === null) {
+        return // User cancelled
+      }
+      
+      const response = await fetch(`/api/admin/campaigns/${id}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to reject campaign')
+      }
+      
+      // Refresh campaigns after successful rejection
+      fetchCampaigns()
+    } catch (err) {
+      console.error('Error rejecting campaign:', err)
+      alert('Failed to reject campaign. Please try again.')
+    }
+  }
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -75,80 +186,113 @@ export default function VerificationPage() {
         </TabsList>
 
         <TabsContent value="pending" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <VerificationCard
-                key={i}
-                id={`VER-00${i + 1}`}
-                title={
-                  [
-                    "Medical Equipment for Home Care",
-                    "Diabetes Management for Children",
-                    "Mental Health Support Program",
-                    "Cancer Treatment for John",
-                    "Specialized Therapy for Autism",
-                    "Rare Disease Treatment Fund",
-                  ][i]
-                }
-                category={
-                  ["Equipment", "Chronic Condition", "Mental Health", "Cancer Treatment", "Therapy", "Rare Disease"][i]
-                }
-                creator={
-                  ["Thomas Wilson", "Amanda Clark", "David Miller", "Mary Johnson", "Robert Brown", "Jessica Lee"][i]
-                }
-                createdAt={["2023-10-01", "2023-09-28", "2023-09-25", "2023-09-22", "2023-09-20", "2023-09-18"][i]}
-                priority={i < 2 ? "urgent" : i < 4 ? "high" : "normal"}
-                documents={Math.floor(Math.random() * 3) + 2}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center p-8">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-500">{error}</div>
+          ) : campaigns.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">No pending campaigns found</div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {campaigns.map((campaign) => (
+                <VerificationCard
+                  key={campaign._id}
+                  _id={campaign._id}
+                  title={campaign.title}
+                  category={campaign.category}
+                  creator={campaign.creator}
+                  createdAt={campaign.createdAt}
+                  priority={campaign.priority || 'normal'}
+                  documents={campaign.verificationStatus?.documents || []}
+                  handleVerify={handleVerify}
+                  handleReject={handleReject}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="urgent" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <VerificationCard
-                key={i}
-                id={`VER-00${i + 1}`}
-                title={
-                  [
-                    "Emergency Heart Surgery for Child",
-                    "Urgent Cancer Treatment",
-                    "Critical Medication for Rare Disease",
-                  ][i]
-                }
-                category={["Surgery", "Cancer Treatment", "Rare Disease"][i]}
-                creator={["Jane Smith", "Robert Johnson", "Emily Davis"][i]}
-                createdAt={["2023-10-02", "2023-10-01", "2023-09-30"][i]}
-                priority="urgent"
-                documents={Math.floor(Math.random() * 3) + 2}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center p-8">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-500">{error}</div>
+          ) : campaigns.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">No urgent campaigns found</div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {campaigns.map((campaign) => (
+                <VerificationCard
+                  key={campaign._id}
+                  _id={campaign._id}
+                  title={campaign.title}
+                  category={campaign.category}
+                  creator={campaign.creator}
+                  createdAt={campaign.createdAt}
+                  priority={campaign.priority || 'normal'}
+                  documents={campaign.verificationStatus?.documents || []}
+                  handleVerify={handleVerify}
+                  handleReject={handleReject}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="approved">
-          <Card>
-            <CardHeader>
-              <CardTitle>Approved Verifications</CardTitle>
-              <CardDescription>Campaigns that have been verified and approved</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Approved verifications will be displayed here.</p>
-            </CardContent>
-          </Card>
+          {loading ? (
+            <div className="flex justify-center p-8">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-500">{error}</div>
+          ) : campaigns.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">No approved campaigns found</div>
+          ) : (
+            <div className="space-y-4">
+              {campaigns.map((campaign) => (
+                <Card key={campaign._id}>
+                  <CardHeader>
+                    <CardTitle>{campaign.title}</CardTitle>
+                    <CardDescription>Approved on {new Date(campaign.verifiedAt).toLocaleDateString()}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p>Campaign details will be displayed here.</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="rejected">
-          <Card>
-            <CardHeader>
-              <CardTitle>Rejected Verifications</CardTitle>
-              <CardDescription>Campaigns that have been rejected during verification</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Rejected verifications will be displayed here.</p>
-            </CardContent>
-          </Card>
+          {loading ? (
+            <div className="flex justify-center p-8">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-500">{error}</div>
+          ) : campaigns.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">No rejected campaigns found</div>
+          ) : (
+            <div className="space-y-4">
+              {campaigns.map((campaign) => (
+                <Card key={campaign._id}>
+                  <CardHeader>
+                    <CardTitle>{campaign.title}</CardTitle>
+                    <CardDescription>Rejected on {new Date(campaign.rejectedAt).toLocaleDateString()}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p>Rejection reason: {campaign.rejectionReason || 'No reason provided'}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -156,21 +300,25 @@ export default function VerificationPage() {
 }
 
 function VerificationCard({
-  id,
+  _id,
   title,
   category,
   creator,
   createdAt,
   priority,
   documents,
+  handleVerify,
+  handleReject
 }: {
-  id: string
-  title: string
-  category: string
-  creator: string
-  createdAt: string
-  priority: "urgent" | "high" | "normal" | "low"
-  documents: number
+  _id: string;
+  title: string;
+  category: string;
+  creator: any;
+  createdAt: string;
+  priority: string;
+  documents: any[];
+  handleVerify: (id: string) => void;
+  handleReject: (id: string) => void;
 }) {
   return (
     <Card>
@@ -187,32 +335,33 @@ function VerificationCard({
           >
             {priority.charAt(0).toUpperCase() + priority.slice(1)}
           </Badge>
-          <div className="text-sm text-muted-foreground">{id}</div>
+          <div className="text-sm text-muted-foreground">{_id}</div>
         </div>
         <CardTitle className="text-lg">{title}</CardTitle>
         <CardDescription>
-          {category} • Created by {creator}
+          {category} • Created by {creator?.name || 'Unknown'}
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-2">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Clock className="h-4 w-4" />
-          <span>Submitted on {createdAt}</span>
+          <span>Submitted {createdAt ? new Date(createdAt).toLocaleDateString() : 'recently'}</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
           <FileText className="h-4 w-4" />
-          <span>{documents} documents to review</span>
+          <span>{documents?.length || 0} documents to review</span>
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/admin/verification/${id}`}>Review</Link>
+          <Link href={`/admin/campaigns/${_id}`}>Review</Link>
         </Button>
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
             className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 dark:border-green-800 dark:hover:bg-green-900/20"
+            onClick={() => handleVerify(_id)}
           >
             <CheckCircle className="mr-1 h-4 w-4" />
             Approve
@@ -221,6 +370,7 @@ function VerificationCard({
             variant="outline"
             size="sm"
             className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-900/20"
+            onClick={() => handleReject(_id)}
           >
             <XCircle className="mr-1 h-4 w-4" />
             Reject
@@ -230,4 +380,3 @@ function VerificationCard({
     </Card>
   )
 }
-

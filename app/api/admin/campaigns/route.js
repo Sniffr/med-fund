@@ -54,7 +54,15 @@ export async function GET(request) {
     // Get total count for pagination
     const total = await db.collection('campaigns').countDocuments(query);
     
-    return NextResponse.json(campaigns);
+    return NextResponse.json({
+      campaigns,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Error fetching campaigns:', error);
     return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
