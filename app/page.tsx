@@ -6,13 +6,15 @@ import { ArrowRight, Heart, Shield, Users } from "lucide-react"
 import FeaturedCampaigns from "@/components/featured-campaigns"
 import HowItWorks from "@/components/how-it-works"
 import Testimonials from "@/components/testimonials"
+import Navbar from "@/components/layout/navbar";
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div>
+      <Navbar />
       {/* Hero Section */}
       <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="container px-4 md:px-6">
+        <div className="container px-4 md:px-6 mx-auto">
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
@@ -75,7 +77,7 @@ export default function Home() {
 
       {/* Stats Section */}
       <section className="w-full py-12 md:py-16 lg:py-20 border-t border-gray-200 dark:border-gray-800">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto px-4 md:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="space-y-2">
               <h3 className="text-3xl font-bold text-primary">$12M+</h3>
@@ -99,7 +101,7 @@ export default function Home() {
 
       {/* Features Section */}
       <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50 dark:bg-gray-900">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">How Our Platform Works</h2>
@@ -166,7 +168,7 @@ export default function Home() {
 
       {/* CTA Section */}
       <section className="w-full py-12 md:py-24 lg:py-32 bg-primary text-primary-foreground">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">

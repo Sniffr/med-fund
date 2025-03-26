@@ -1,7 +1,7 @@
-import { getUserByEmail } from '@/lib/db/models/user';
 import { NextResponse } from 'next/server';
-import { comparePassword } from '@/lib/auth';
 import jwt from 'jsonwebtoken';
+import {comparePassword} from "../../../../lib/auth";
+import {getUserByEmail} from "../../../../lib/db/models";
 
 export async function POST(request) {
   try {

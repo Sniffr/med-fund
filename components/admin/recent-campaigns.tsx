@@ -34,6 +34,7 @@ const RecentCampaigns: React.FC<RecentCampaignsProps> = ({ className }) => {
         }
         
         const data = await response.json();
+        console.log(data);
         setCampaigns(data.campaigns || []);
         setError(null);
       } catch (err) {
