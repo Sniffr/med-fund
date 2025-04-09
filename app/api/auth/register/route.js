@@ -1,6 +1,7 @@
-import { createUser, getUserByEmail } from '@/lib/db/models/user';
+
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import {createUser, getUserByEmail} from "../../../../lib/db/models";
 
 export async function POST(request) {
   try {
@@ -32,11 +33,10 @@ export async function POST(request) {
       email,
       password: hashedPassword,
       role: 'user',
-      createdAt: new Date(),
       status: 'active',
       verificationStatus: {
-        identityVerified: false,
-        emailVerified: false,
+        identityVerified: true,
+        emailVerified: true,
         phoneVerified: false
       },
       profile: {

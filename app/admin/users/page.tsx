@@ -30,20 +30,8 @@ import {
   Unlock,
   UserCog,
 } from "lucide-react"
+import {User} from "@/types/admin/user";
 
-interface User {
-  _id: string;
-  id?: string;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-  campaigns?: number;
-  donations?: number;
-  createdAt: string;
-  joinedAt?: string;
-  avatar?: string;
-}
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -54,75 +42,7 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  
-  // Placeholder users for initial render or fallback
-  const placeholderUsers: User[] = [
-    {
-      _id: "USR-001",
-      id: "USR-001",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@example.com",
-      role: "admin",
-      status: "active",
-      campaigns: 3,
-      donations: 12,
-      createdAt: "2023-01-15T00:00:00.000Z",
-      joinedAt: "2023-01-15",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-      _id: "USR-002",
-      id: "USR-002",
-      name: "John Smith",
-      email: "john.smith@example.com",
-      role: "user",
-      status: "active",
-      campaigns: 1,
-      donations: 8,
-      createdAt: "2023-02-20T00:00:00.000Z",
-      joinedAt: "2023-02-20",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-      _id: "USR-003",
-      id: "USR-003",
-      name: "Emily Wilson",
-      email: "emily.wilson@example.com",
-      role: "user",
-      status: "active",
-      campaigns: 2,
-      donations: 5,
-      createdAt: "2023-03-10T00:00:00.000Z",
-      joinedAt: "2023-03-10",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-      _id: "USR-004",
-      id: "USR-004",
-      name: "Robert Brown",
-      email: "robert.brown@example.com",
-      role: "moderator",
-      status: "active",
-      campaigns: 0,
-      donations: 15,
-      createdAt: "2023-04-05T00:00:00.000Z",
-      joinedAt: "2023-04-05",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-      _id: "USR-005",
-      id: "USR-005",
-      name: "Michael Davis",
-      email: "michael.davis@example.com",
-      role: "user",
-      status: "suspended",
-      campaigns: 1,
-      donations: 3,
-      createdAt: "2023-05-12T00:00:00.000Z",
-      joinedAt: "2023-05-12",
-      avatar: "/placeholder.svg?height=32&width=32",
-    }
-  ]
+
   
   useEffect(() => {
     fetchUsers();
@@ -157,13 +77,10 @@ export default function UsersPage() {
         setTotalUsers(data.total || 0);
       } else {
         console.error('Error fetching users: API returned non-OK status');
-        // Set placeholder data as fallback
-        setUsers(placeholderUsers);
+
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      // Set placeholder data as fallback
-      setUsers(placeholderUsers);
     } finally {
       setLoading(false);
     }
@@ -312,79 +229,76 @@ export default function UsersPage() {
                         <TableHead>Role</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Joined</TableHead>
-                        <TableHead className="text-center">Campaigns</TableHead>
-                        <TableHead className="text-center">Donations</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {users.map((user) => (
-                        <TableRow key={user._id || user.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={user.avatar || `/placeholder.svg?height=32&width=32`} alt={user.name} />
-                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{user.name}</span>
-                                <span className="text-xs text-muted-foreground">{user.email}</span>
+                          <TableRow key={user._id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={user?.profile?.avatar || `/placeholder.svg?height=32&width=32`}
+                                               alt={user.name}/>
+                                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{user.name}</span>
+                                  <span className="text-xs text-muted-foreground">{user.email}</span>
+                                </div>
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <RoleBadge role={user.role} />
-                          </TableCell>
-                          <TableCell>
-                            <StatusBadge status={user.status} />
-                          </TableCell>
-                          <TableCell>{user.joinedAt || new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-center">{user.campaigns || 0}</TableCell>
-                          <TableCell className="text-center">{user.donations || 0}</TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Actions</span>
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => handleEditUser(user._id || user.id)}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit User
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <UserCog className="mr-2 h-4 w-4" />
-                                  Change Role
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                {user.status === "active" ? (
-                                  <DropdownMenuItem 
-                                    className="text-orange-600"
-                                    onClick={() => handleChangeStatus(user._id || user.id, 'suspended')}
-                                  >
-                                    <Ban className="mr-2 h-4 w-4" />
-                                    Suspend User
+                            </TableCell>
+                            <TableCell>
+                              <RoleBadge role={user.role}/>
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={user.status}/>
+                            </TableCell>
+                            <TableCell>{user.createdAt || new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4"/>
+                                    <span className="sr-only">Actions</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => handleEditUser(user._id)}>
+                                    <Pencil className="mr-2 h-4 w-4"/>
+                                    Edit User
                                   </DropdownMenuItem>
-                                ) : user.status === "suspended" ? (
-                                  <DropdownMenuItem 
-                                    className="text-green-600"
-                                    onClick={() => handleChangeStatus(user._id || user.id, 'active')}
-                                  >
-                                    <Unlock className="mr-2 h-4 w-4" />
-                                    Reactivate User
+                                  <DropdownMenuItem>
+                                    <UserCog className="mr-2 h-4 w-4"/>
+                                    Change Role
                                   </DropdownMenuItem>
-                                ) : null}
-                                <DropdownMenuItem>
-                                  <Lock className="mr-2 h-4 w-4" />
-                                  Reset Password
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
+                                  <DropdownMenuSeparator/>
+                                  {user.status === "active" ? (
+                                      <DropdownMenuItem
+                                          className="text-orange-600"
+                                          onClick={() => handleChangeStatus(user._id, "suspended")}
+                                      >
+                                        <Ban className="mr-2 h-4 w-4"/>
+                                        Suspend User
+                                      </DropdownMenuItem>
+                                  ) : user.status === "suspended" ? (
+                                      <DropdownMenuItem
+                                          className="text-green-600"
+                                          onClick={() => handleChangeStatus(user._id, "active")}
+                                      >
+                                        <Unlock className="mr-2 h-4 w-4"/>
+                                        Reactivate User
+                                      </DropdownMenuItem>
+                                  ) : null}
+                                  <DropdownMenuItem>
+                                    <Lock className="mr-2 h-4 w-4"/>
+                                    Reset Password
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
                       ))}
                     </TableBody>
                   </Table>

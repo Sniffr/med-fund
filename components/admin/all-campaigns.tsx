@@ -117,7 +117,7 @@ const AllCampaigns = () => {
                                             <TableCell>
                                                 <StatusBadge status={campaign.status} verified={campaign.status} />
                                             </TableCell>
-                                            <TableCell className="text-right">${campaign.goalAmount?.toLocaleString()}</TableCell>
+                                            <TableCell className="text-right">${campaign.goalAmount?.toLocaleString() || campaign.goal?.toLocaleString()}</TableCell>
                                             <TableCell className="text-right">
                                                 ${campaign.currentAmount?.toLocaleString()}
                                                 <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 dark:bg-gray-700">
@@ -148,7 +148,7 @@ const AllCampaigns = () => {
                                                             Edit Campaign
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
-                                                        {campaign.status === "pending" && (
+                                                        {(campaign.status === "pending" || campaign.status === "draft") && (
                                                             <>
                                                                 <DropdownMenuItem className="text-green-600">
                                                                     <CheckCircle className="mr-2 h-4 w-4" />
@@ -230,6 +230,14 @@ function StatusBadge({ status, verified }: { status: string; verified: boolean }
                     </Badge>
                 )}
             </div>
+        )
+    }
+
+    if (status === "draft") {
+        return (
+            <Badge className="bg-gray-100 text-black hover:bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-300">
+                Draft
+            </Badge>
         )
     }
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import {comparePassword} from "../../../../lib/auth";
 import {getUserByEmail} from "../../../../lib/db/models";
+import bcrypt from "bcryptjs";
 
 export async function POST(request) {
   try {

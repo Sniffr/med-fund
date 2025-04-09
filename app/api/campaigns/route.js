@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/auth';
 import { createCampaign, getAllCampaigns, getFeaturedCampaigns } from '@/lib/db/models/campaign';
 import { uploadFileToS3, generateUniqueFileName } from '@/lib/s3';
 import { createDocument } from '@/lib/db/models/document';
 import { ObjectId } from 'mongodb';
+import {verifyAuth} from "../../../lib/auth";
 
 // Get all campaigns with filtering
 export async function GET(request) {
@@ -57,6 +57,7 @@ export async function GET(request) {
 
 // Create a new campaign
 export async function POST(request) {
+  let user;
   try {
     // Check if the request is form data or JSON
     const contentType = request.headers.get('content-type') || '';
@@ -65,7 +66,7 @@ export async function POST(request) {
       // Handle form data submission with file uploads
       // Verify authentication
       try {
-        const user = await verifyAuth(request);
+         user = await verifyAuth(request);
         if (!user) {
           return NextResponse.json(
             { message: 'Authentication required' },
